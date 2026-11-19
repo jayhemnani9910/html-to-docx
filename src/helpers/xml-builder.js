@@ -331,6 +331,22 @@ const appendUnderline = ({ parent, value }) => {
   return underline.up();
 };
 
+// Word shows a line feed inside <w:t> as a space, so with browserLayout each
+// <pre> line gets its own <w:t> with a <w:br/> between them.
+const buildTextElements = (text, preformatted, options = {}) =>
+  preformatted && options.browserLayout
+    ? text
+        .split(/\r?\n/)
+        .flatMap((line, index) =>
+          index === 0
+            ? [buildTextElement(line, options)]
+            : [buildLineBreak(), buildTextElement(line, options)]
+        )
+    : [buildTextElement(text, options)];
+
+const importFragments = (parent, fragments) =>
+  fragments.forEach((textFragment) => parent.import(textFragment));
+
 const buildTextDecoration = (value) => {
   if (value.line === 'underline') {
     return appendUnderline({ parent: fragment({ namespaceAlias: { w: namespaces.w } }), value });
@@ -1140,6 +1156,7 @@ const modifiedStyleAttributesBuilder = (docxDocumentInstance, vNode, attributes,
       modifiedAttributes.highlightColor = 'lightGray';
     } else if (isVNode(vNode) && vNode.tagName === 'pre') {
       modifiedAttributes.font = 'Courier';
+      modifiedAttributes.preformatted = true;
     }
   }
 
@@ -1706,12 +1723,13 @@ const buildRun = async (vNode, attributes, docxDocumentInstance) => {
     while (vNodes.length) {
       const tempVNode = vNodes.shift();
       if (isVText(tempVNode)) {
-        const textFragment = buildTextElement(
+        const textFragments = buildTextElements(
           transformText(
             tempVNode.text,
             formattingFragmentAttributes.textTransform || tempAttributes.textTransform,
             layoutOf(docxDocumentInstance)
           ),
+          tempAttributes.preformatted,
           layoutOf(docxDocumentInstance)
         );
         // formattingFragmentAttributes carries inline <strong>/<em>/<u>/<del>
@@ -1726,7 +1744,7 @@ const buildRun = async (vNode, attributes, docxDocumentInstance) => {
           ...formattingFragmentAttributes,
         });
         tempRunFragment.import(tempRunPropertiesFragment);
-        tempRunFragment.import(textFragment);
+        importFragments(tempRunFragment, textFragments);
         runFragmentsArray.push(tempRunFragment);
 
         // re initialize temp run fragments with new fragment. formatting
@@ -1778,6 +1796,10 @@ const buildRun = async (vNode, attributes, docxDocumentInstance) => {
             case 'strike':
               tempAttributes.strike = true;
               break;
+            case 'pre': {
+              tempAttributes.preformatted = true;
+              break;
+            }
           }
           const formattingFragment = buildFormatting(tempVNode);
           formattingFragmentAttributes = modifiedStyleAttributesBuilder(
@@ -1878,11 +1900,9 @@ const buildRun = async (vNode, attributes, docxDocumentInstance) => {
   // (notably the phrasing-tag branch above).
   runFragment.import(sortRprChildren(runPropertiesFragment));
   if (isVText(vNode)) {
-    const textFragment = buildTextElement(
-      transformText(vNode.text, attributes.textTransform, layoutOf(docxDocumentInstance)),
-      layoutOf(docxDocumentInstance)
-    );
-    runFragment.import(textFragment);
+    const layout = layoutOf(docxDocumentInstance);
+    const text = transformText(vNode.text, attributes.textTransform, layout);
+    importFragments(runFragment, buildTextElements(text, attributes.preformatted, layout));
   } else if (attributes && attributes.type === 'picture') {
     const imageSource = vNode.properties.src;
 

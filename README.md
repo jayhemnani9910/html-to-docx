@@ -459,7 +459,7 @@ Full examples can be found under `example/`, including a complete
 
 By default the converter writes what 1.23.3 wrote. Pass `browserLayout: true` to lay the document out the way a browser renders the HTML instead, which is what you want when the HTML comes from an editor or a page whose look must survive the export. With it on:
 
-- paragraph `margin-top` / `margin-bottom`, CSS `line-height`, `em` / `rem` font sizes, `font-weight` below 600 as not bold, `font-style: italic`, paragraph borders and tab characters (see below);
+- paragraph `margin-top` / `margin-bottom`, CSS `line-height`, `em` / `rem` font sizes, `font-weight` below 600 as not bold, `font-style: italic`, paragraph borders, tab characters (see below) and line breaks inside `<pre>`;
 - table cell `padding`, table `margin-left` indent, `table-layout: fixed`, `<thead>` rows repeated at the top of every page, and `data-no-spacing-after`;
 - floating tables and pictures, picture crop, border and transparency, and alt text on the drawing itself (see below);
 - `decimal-leading-zero`, `data-suffix`, `data-numbering="outline"`, `data-bullet`, Arial bullets for `disc` / `circle` / `square`, and checklists (`<ul data-checklist="true">`);
